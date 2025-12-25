@@ -1,6 +1,6 @@
 const CONFIG = {
     // API服务器地址（部署到Vercel后更新）
-    API_SERVER: 'https://travel-roulette-api.vercel.app/api',
+    API_SERVER: 'https://travel4-second.vercel.app/api',
     
     // 地图配置
     MAP_TILES: {
