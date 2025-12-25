@@ -277,7 +277,7 @@ class TravelRouletteApp {
                     city: this.selectedCity,
                     month: this.selectedMonth,
                     duration: duration,
-                    amapKey: 'ee53f0f545f7f835427ea8dc91c9c4e6',
+                    amapKey: '372be7f1091857c99af5e8faaeaa740c',
                     doubaoKey: 'afc7f997-9738-4003-b7a7-67b0e4f8400f'
                 })
             });
