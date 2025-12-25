@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
     }
     
     try {
-    const amapKey = process.env.AMAP_KEY || 'ee53f0f545f7f835427ea8dc91c9c4e6';
+    const amapKey = process.env.AMAP_KEY || '372be7f1091857c99af5e8faaeaa740c';
     
     // ========== 【新增调试行1：检查密钥】 ==========
     console.log('【调试】环境变量 AMAP_KEY 是否存在:', !!process.env.AMAP_KEY);
