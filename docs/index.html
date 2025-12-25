@@ -1,16 +1,369 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <title>旅游选择器</title>
-    <style>
-        body { font-family: Arial; background: blue; color: white; text-align: center; padding: 50px; }
-        h1 { font-size: 40px; }
-        button { background: yellow; color: black; padding: 15px 30px; border: none; font-size: 20px; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能旅游目的地随机选择器</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
 <body>
-    <h1>🎉 恭喜！网站部署成功！</h1>
-    <p>这是你的旅游目的地选择器</p>
-    <button onclick="alert('功能即将上线！')">点击测试</button>
+    <!-- 加载动画 -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>正在加载旅游数据...</p>
+        </div>
+    </div>
+
+    <div class="container" style="display: none;">
+        <!-- 头部 -->
+        <header class="main-header">
+            <div class="header-content">
+                <h1 class="animate__animated animate__fadeInDown">
+                    <i class="fas fa-random"></i> 智能旅游目的地随机选择器
+                </h1>
+                <p class="subtitle">AI智能规划 · 真实旅游数据 · 个性化推荐</p>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main>
+            <!-- 步骤指示器 -->
+            <div class="steps">
+                <div class="step active" data-step="1">
+                    <div class="step-icon">1</div>
+                    <span>选择月份</span>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-icon">2</div>
+                    <span>随机抽取</span>
+                </div>
+                <div class="step" data-step="3">
+                    <div class="step-icon">3</div>
+                    <span>查看攻略</span>
+                </div>
+            </div>
+
+            <!-- 步骤1：选择月份 -->
+            <section id="step1" class="step-section active">
+                <h2><i class="fas fa-calendar-alt"></i> 选择您的旅行月份</h2>
+                <p class="section-description">不同季节适合不同的旅行目的地，选择月份获取最合适的推荐</p>
+                
+                <div class="month-selection">
+                    <div class="month-grid" id="monthGrid"></div>
+                    
+                    <div class="season-highlights">
+                        <div class="season-card spring">
+                            <h4><i class="fas fa-seedling"></i> 春季推荐 (3-5月)</h4>
+                            <p>赏花踏青，气候宜人</p>
+                        </div>
+                        <div class="season-card summer">
+                            <h4><i class="fas fa-sun"></i> 夏季推荐 (6-8月)</h4>
+                            <p>避暑胜地，海滨度假</p>
+                        </div>
+                        <div class="season-card autumn">
+                            <h4><i class="fas fa-leaf"></i> 秋季推荐 (9-11月)</h4>
+                            <p>赏枫登高，天高气爽</p>
+                        </div>
+                        <div class="season-card winter">
+                            <h4><i class="fas fa-snowflake"></i> 冬季推荐 (12-2月)</h4>
+                            <p>冰雪奇缘，温泉养生</p>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="randomMonthBtn" class="btn-random">
+                            <i class="fas fa-random"></i> 随机选择月份
+                        </button>
+                        <button id="nextStep1" class="btn-next" disabled>
+                            下一步 <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步骤2：随机抽取 -->
+            <section id="step2" class="step-section">
+                <h2><i class="fas fa-globe-asia"></i> 随机抽取旅游目的地</h2>
+                <p class="section-description">系统将从全国所有地级市中随机选择一个，并结合您选择的月份生成智能攻略</p>
+                
+                <div class="roulette-container">
+                    <div class="roulette-wrapper">
+                        <canvas id="rouletteCanvas" width="800" height="800"></canvas>
+                        <div class="roulette-center">
+                            <div class="pointer"></div>
+                            <div class="center-content">
+                                <div id="selectedMonthDisplay" class="selected-month"></div>
+                                <button id="spinBtn" class="spin-btn">
+                                    <i class="fas fa-play-circle"></i> 开始旋转
+                                </button>
+                                <div id="selectedCityDisplay" class="selected-city">
+                                    等待选择...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="roulette-info">
+                        <div class="info-card">
+                            <i class="fas fa-database"></i>
+                            <h4>数据来源</h4>
+                            <p>覆盖全国所有地级市<br>实时更新旅游信息</p>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-robot"></i>
+                            <h4>AI智能分析</h4>
+                            <p>豆包API深度分析<br>生成个性化攻略</p>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-map-marked-alt"></i>
+                            <h4>实时地图</h4>
+                            <p>高德地图精准定位<br>智能路线规划</p>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="fullRandomBtn" class="btn-full-random">
+                            <i class="fas fa-dice"></i> 完全随机（月份+城市）
+                        </button>
+                        <button id="prevStep2" class="btn-prev">
+                            <i class="fas fa-arrow-left"></i> 上一步
+                        </button>
+                        <button id="nextStep2" class="btn-next" disabled>
+                            生成攻略 <i class="fas fa-magic"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步骤3：查看攻略 -->
+            <section id="step3" class="step-section">
+                <div class="results-header">
+                    <h2><i class="fas fa-map-marked-alt"></i> 智能旅游攻略生成</h2>
+                    <div class="result-summary">
+                        <div class="summary-item">
+                            <i class="fas fa-city"></i>
+                            <span id="resultCity">--</span>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-calendar"></i>
+                            <span id="resultMonth">--</span>
+                        </div>
+                        <div class="summary-item">
+                            <i class="fas fa-clock"></i>
+                            <span id="resultDuration">3天2晚</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 标签页导航 -->
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="overview">
+                        <i class="fas fa-home"></i> 概览
+                    </button>
+                    <button class="tab-btn" data-tab="itinerary">
+                        <i class="fas fa-route"></i> 行程
+                    </button>
+                    <button class="tab-btn" data-tab="budget">
+                        <i class="fas fa-money-bill-wave"></i> 预算
+                    </button>
+                    <button class="tab-btn" data-tab="map">
+                        <i class="fas fa-map"></i> 地图
+                    </button>
+                    <button class="tab-btn" data-tab="tips">
+                        <i class="fas fa-lightbulb"></i> 贴士
+                    </button>
+                    <button class="tab-btn" data-tab="checklist">
+                        <i class="fas fa-clipboard-check"></i> 清单
+                    </button>
+                </div>
+                
+                <!-- 标签页内容 -->
+                <div class="tab-content">
+                    <!-- 概览 -->
+                    <div id="overview" class="tab-pane active">
+                        <div class="overview-container">
+                            <div class="overview-main">
+                                <div id="cityOverview" class="city-overview">
+                                    <h3><i class="fas fa-info-circle"></i> 城市介绍</h3>
+                                    <p>加载中...</p>
+                                </div>
+                                <div class="ai-insights">
+                                    <h3><i class="fas fa-brain"></i> AI智能推荐</h3>
+                                    <div id="aiRecommendations"></div>
+                                </div>
+                            </div>
+                            <div class="overview-sidebar">
+                                <div class="weather-card">
+                                    <h4><i class="fas fa-cloud-sun"></i> 天气情况</h4>
+                                    <div id="weatherInfo"></div>
+                                </div>
+                                <div class="quick-stats">
+                                    <h4><i class="fas fa-chart-bar"></i> 旅行数据</h4>
+                                    <div id="quickStats"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 行程 -->
+                    <div id="itinerary" class="tab-pane">
+                        <div class="itinerary-container">
+                            <div class="itinerary-header">
+                                <h3><i class="fas fa-calendar-day"></i> 每日行程安排</h3>
+                                <div class="duration-selector">
+                                    <label>行程天数：</label>
+                                    <select id="durationSelect">
+                                        <option value="2">2天1晚</option>
+                                        <option value="3" selected>3天2晚</option>
+                                        <option value="4">4天3晚</option>
+                                        <option value="5">5天4晚</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="itineraryDays" class="itinerary-days"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预算 -->
+                    <div id="budget" class="tab-pane">
+                        <div class="budget-container">
+                            <div class="budget-summary">
+                                <h3><i class="fas fa-calculator"></i> 预算总览</h3>
+                                <div class="total-budget">
+                                    <span class="amount" id="totalBudget">¥ --</span>
+                                    <span class="per-person">人均预算</span>
+                                </div>
+                                <div class="budget-breakdown">
+                                    <div id="budgetChart" style="height: 300px;"></div>
+                                </div>
+                            </div>
+                            <div class="budget-details">
+                                <div class="budget-category">
+                                    <h4><i class="fas fa-plane"></i> 交通费用</h4>
+                                    <div id="transportationCosts"></div>
+                                </div>
+                                <div class="budget-category">
+                                    <h4><i class="fas fa-hotel"></i> 住宿费用</h4>
+                                    <div id="accommodationCosts"></div>
+                                </div>
+                                <div class="budget-category">
+                                    <h4><i class="fas fa-utensils"></i> 餐饮费用</h4>
+                                    <div id="foodCosts"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 地图 -->
+                    <div id="map" class="tab-pane">
+                        <div class="map-container">
+                            <div id="mapView" style="height: 500px; border-radius: 10px;"></div>
+                            <div class="map-controls">
+                                <button id="showRoute" class="btn-map">
+                                    <i class="fas fa-route"></i> 显示路线
+                                </button>
+                                <button id="showAttractions" class="btn-map">
+                                    <i class="fas fa-map-marker-alt"></i> 显示景点
+                                </button>
+                                <button id="downloadMap" class="btn-map">
+                                    <i class="fas fa-download"></i> 保存地图
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 贴士 -->
+                    <div id="tips" class="tab-pane">
+                        <div class="tips-container">
+                            <div class="tips-grid">
+                                <div class="tip-card">
+                                    <i class="fas fa-weather-icons fa-cloud-sun-rain"></i>
+                                    <h4>天气贴士</h4>
+                                    <div id="weatherTips"></div>
+                                </div>
+                                <div class="tip-card">
+                                    <i class="fas fa-traffic-light"></i>
+                                    <h4>交通贴士</h4>
+                                    <div id="transportationTips"></div>
+                                </div>
+                                <div class="tip-card">
+                                    <i class="fas fa-utensils"></i>
+                                    <h4>美食贴士</h4>
+                                    <div id="foodTips"></div>
+                                </div>
+                                <div class="tip-card">
+                                    <i class="fas fa-camera"></i>
+                                    <h4>摄影贴士</h4>
+                                    <div id="photoTips"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 清单 -->
+                    <div id="checklist" class="tab-pane">
+                        <div class="checklist-container">
+                            <div class="checklist-category">
+                                <h4><i class="fas fa-suitcase"></i> 行李清单</h4>
+                                <ul id="luggageList"></ul>
+                            </div>
+                            <div class="checklist-category">
+                                <h4><i class="fas fa-map-marker-alt"></i> 必游景点</h4>
+                                <ul id="attractionsList"></ul>
+                            </div>
+                            <div class="checklist-category">
+                                <h4><i class="fas fa-bed"></i> 住宿建议</h4>
+                                <ul id="accommodationList"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="results-actions">
+                    <button id="regenerateBtn" class="btn-action">
+                        <i class="fas fa-redo"></i> 重新生成
+                    </button>
+                    <button id="downloadPDF" class="btn-action">
+                        <i class="fas fa-file-pdf"></i> 下载PDF
+                    </button>
+                    <button id="shareBtn" class="btn-action">
+                        <i class="fas fa-share-alt"></i> 分享攻略
+                    </button>
+                    <button id="startOver" class="btn-action">
+                        <i class="fas fa-home"></i> 重新开始
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- 页脚 -->
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4><i class="fas fa-code"></i> 技术支持</h4>
+                    <p>高德地图API · 豆包AI · 智能算法</p>
+                </div>
+                <div class="footer-section">
+                    <h4><i class="fas fa-database"></i> 数据来源</h4>
+                    <p>实时旅游数据 · 用户生成内容 · 官方统计</p>
+                </div>
+                <div class="footer-section">
+                    <h4><i class="fas fa-info-circle"></i> 免责声明</h4>
+                    <p>价格仅供参考，实际请以当地为准</p>
+                </div>
+            </div>
+            <p class="copyright">© 2024 智能旅游目的地选择器 | 本网站仅供学习使用</p>
+        </footer>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
