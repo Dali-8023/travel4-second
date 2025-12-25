@@ -14,36 +14,54 @@ module.exports = async (req, res) => {
     }
     
     try {
-        const amapKey = process.env.AMAP_KEY || 'ee53f0f545f7f835427ea8dc91c9c4e6';
-        
-        // 调用高德地图行政区域查询API
-        const url = `https://restapi.amap.com/v3/config/district?key=${amapKey}&keywords=中国&subdistrict=3&extensions=base`;
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data.status !== '1') {
-            throw new Error(data.info || '高德地图API调用失败');
-        }
-        
-        // 提取所有地级市
-        const cities = extractCities(data.districts);
-        
-        res.status(200).json({
-            success: true,
-            count: cities.length,
-            cities: cities,
-            timestamp: new Date().toISOString()
-        });
-        
-    } catch (error) {
-        console.error('获取城市数据失败:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            cities: getFallbackCities() // 返回备用数据
-        });
+    const amapKey = process.env.AMAP_KEY || 'ee53f0f545f7f835427ea8dc91c9c4e6';
+    
+    // ========== 【新增调试行1：检查密钥】 ==========
+    console.log('【调试】环境变量 AMAP_KEY 是否存在:', !!process.env.AMAP_KEY);
+    console.log('【调试】最终使用的 amapKey (前5位):', amapKey ? amapKey.substring(0, 5) + '...' : '为空');
+    
+    // 调用高德地图行政区域查询API
+    const url = `https://restapi.amap.com/v3/config/district?key=${amapKey}&keywords=中国&subdistrict=3&extensions=base`;
+    
+    // ========== 【新增调试行2：检查请求URL】 ==========
+    console.log('【调试】准备请求的URL:', url.replace(amapKey, '***KEY***')); // 隐藏完整密钥
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    // ========== 【新增调试行3：检查API原始响应】 ==========
+    console.log('【调试】高德API返回状态(status):', data.status);
+    console.log('【调试】高德API返回信息(info):', data.info);
+    console.log('【调试】高德API返回数据计数(count):', data.count);
+    
+    if (data.status !== '1') {
+        throw new Error(data.info || '高德地图API调用失败');
     }
+    
+    // 提取所有地级市
+    const cities = extractCities(data.districts);
+    
+    res.status(200).json({
+        success: true,
+        count: cities.length,
+        cities: cities,
+        timestamp: new Date().toISOString()
+    });
+    
+} catch (error) {
+    console.error('获取城市数据失败:', error);
+    // ========== 【修改此处：返回更详细的错误信息】 ==========
+    res.status(500).json({
+        success: false,
+        error: error.message,
+        // 将详细的调试信息也返回给前端，方便我们在浏览器直接查看
+        debugInfo: {
+            envKeyExists: !!process.env.AMAP_KEY,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : '已隐藏'
+        },
+        cities: getFallbackCities() // 返回备用数据
+    });
+}
 };
 
 function extractCities(districts) {
