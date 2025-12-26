@@ -237,7 +237,8 @@ async function generateAIGuide(city, month, duration, apiKey) {
                     }
                 ],
                 temperature: 0.7,
-                max_tokens: 4000
+                max_tokens: 1000,
+                timeout: 8000  // 增加超时限制
             })
         });
 
