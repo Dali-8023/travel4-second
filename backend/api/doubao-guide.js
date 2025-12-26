@@ -225,7 +225,7 @@ async function generateAIGuide(city, month, duration, apiKey) {
                 'Authorization': `Bearer ${apiKey || process.env.DOUBAO_KEY}`
             },
             body: JSON.stringify({
-                model: 'doubao-1.5-32k',
+                model: 'doubao-seed-1-8-251215',
                 messages: [
                     {
                         role: 'system',
