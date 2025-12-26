@@ -210,15 +210,15 @@ async function generateAIGuide(city, month, duration, apiKey) {
 4. 考虑${season}季的气候特点
 5. 包含抖音/小红书热门打卡点`;
 
-        // ========== 【新增调试日志：检查请求】==========
-        console.log('【豆包调试】准备调用API，密钥（前8位）:', (apiKey || process.env.DOUBAO_KEY || '').substring(0, 8) + '...');
-        console.log('【豆包调试】请求URL:', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions');
-        console.log('【豆包调试】请求的Prompt长度:', prompt.length);
-        // ========== 【调试日志结束】==========
-
     try {
         // 豆包API调用
-        const doubaoResponse = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
+        // ========== 【新增调试日志：检查请求】==========
+        console.log('【豆包调试】准备调用API，密钥（前8位）:', (apiKey || process.env.DOUBAO_KEY || '').substring(0, 8) + '...');
+        const requestUrl = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+        console.log('【豆包调试】请求URL:', requestUrl);
+        // ========== 【调试日志结束】==========
+
+        const doubaoResponse = await fetch(requestUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -246,10 +246,9 @@ async function generateAIGuide(city, month, duration, apiKey) {
         const rawResponseText = await doubaoResponse.text(); // 先以文本形式读取
         console.log('【豆包调试】原始响应文本（前500字符）:', rawResponseText.substring(0, 500));
         // ========== 【调试日志结束】==========
-        
-        // 注意：因为上面已经用 .text() 读取了响应体，我们需要重新构造一个“响应对象”供后面的 .json() 解析。
-        // 将原来的 const data = await doubaoResponse.json(); 替换为以下两行：
-        let data;
+
+        // *** 核心修改点：以下整个 try-catch 块用于解析JSON，它代替了原来的 .json() 调用，并且只声明一次 data ***
+        let data; // 这是整个try块中唯一的 data 变量声明
         try {
             data = JSON.parse(rawResponseText);
         } catch (parseError) {
@@ -257,7 +256,6 @@ async function generateAIGuide(city, month, duration, apiKey) {
             // 如果连JSON都不是，说明API返回了错误页面或明文错误信息
             throw new Error(`豆包API返回了非JSON数据，状态码: ${doubaoResponse.status}，内容: ${rawResponseText.substring(0, 200)}`);
         }
-        const data = await doubaoResponse.json();
 
         // ========== 【新增调试日志：检查解析后的数据】==========
         console.log('【豆包调试】解析后数据 keys:', Object.keys(data));
