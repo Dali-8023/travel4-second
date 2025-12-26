@@ -185,7 +185,7 @@ async function generateAIGuideFast(city, month, duration, apiKey) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'doubao-1-5-pro-32k-250115',
+                model: 'doubao-1-5-lite-32k-250115',
                 messages: [
                     {
                         role: 'system',
