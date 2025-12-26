@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
         return;
     }
     
-    // 超时处理：8秒内必须完成
+    // 超时处理：9秒内必须完成（Vercel限制为10秒）
     const timeout = setTimeout(() => {
         console.log('函数执行超时，返回备用攻略');
         const fallbackGuide = generateFallbackGuide(req.body || {});
@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
             note: '由于生成时间较长，返回简化版攻略',
             generatedAt: new Date().toISOString()
         });
-    }, 8000);
+    }, 9000);
     
     try {
         const { city, month, duration = 3, amapKey, doubaoKey } = req.body;
@@ -57,7 +57,7 @@ module.exports = async (req, res) => {
             try {
                 aiGuide = await Promise.race([
                     generateAIGuideFast(city, month, duration, doubaoKey),
-                    new Promise(resolve => setTimeout(() => resolve(null), 5000))
+                    new Promise(resolve => setTimeout(() => resolve(null), 4000)) // 减少AI请求超时
                 ]);
             } catch (error) {
                 console.warn('AI生成失败:', error.message);
@@ -105,7 +105,7 @@ async function getCityInfoFast(cityName, amapKey) {
     
     try {
         const url = `https://restapi.amap.com/v3/geocode/geo?key=${amapKey}&address=${encodeURIComponent(cityName)}`;
-        const response = await fetch(url, { timeout: 3000 });
+        const response = await fetch(url, { timeout: 2500 });
         const data = await response.json();
         
         if (data.status === '1' && data.geocodes && data.geocodes.length > 0) {
@@ -137,7 +137,7 @@ async function getAttractionsFast(city, amapKey) {
         const types = '风景名胜|公园广场|博物馆';
         const url = `https://restapi.amap.com/v3/place/text?key=${amapKey}&keywords=${encodeURIComponent(city)}&types=${encodeURIComponent(types)}&city=${encodeURIComponent(city)}&offset=10&page=1`;
         
-        const response = await fetch(url, { timeout: 3000 });
+        const response = await fetch(url, { timeout: 2500 });
         const data = await response.json();
         
         if (data.status === '1' && data.pois && data.pois.length > 0) {
@@ -161,20 +161,12 @@ async function generateAIGuideFast(city, month, duration, apiKey) {
     const monthName = getChineseMonthName(month);
     const season = getSeason(month);
     
-    // 简化的提示词
-    const prompt = `请为${city}的${monthName}（${season}季）${duration}天旅行生成一份简洁攻略。
-
-只需JSON格式，结构如下：
+    // 极简提示词
+    const prompt = `为${city}${monthName}${duration}天旅行生成极简攻略。仅返回JSON：
 {
-  "overview": "100字概况",
-  "attractions": [
-    {"name": "景点", "description": "50字描述"}
-  ],
-  "itinerary": [
-    {"day": 1, "activities": [
-      {"time": "09:00", "activity": "活动"}
-    ]}
-  ]
+  "overview": "50字概况",
+  "attractions": [{"name":"景点","description":"30字描述"}],
+  "itinerary": [{"day":1,"activities":[{"time":"09:00","activity":"活动"}]}]
 }`;
 
     try {
@@ -196,27 +188,26 @@ async function generateAIGuideFast(city, month, duration, apiKey) {
                         content: prompt
                     }
                 ],
-                temperature: 0.7,
-                max_tokens: 800,
-                timeout: 5000
+                temperature: 0.5,
+                max_tokens: 500, // 减少生成内容长度
+                timeout: 4000
             }),
-            timeout: 5000
+            timeout: 4000
         });
 
-        const rawText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(rawText);
-        } catch (e) {
-            console.warn('AI响应非JSON格式');
-            return null;
-        }
+        const data = await response.json();
         
         if (data.choices?.[0]?.message?.content) {
             const content = data.choices[0].message.content;
-            const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/{[\s\S]*}/);
-            if (jsonMatch) {
-                return JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            // 直接尝试解析JSON
+            try {
+                return JSON.parse(content);
+            } catch (e) {
+                // 尝试提取JSON内容
+                const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/{[\s\S]*}/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[1] || jsonMatch[0]);
+                }
             }
         }
     } catch (error) {
