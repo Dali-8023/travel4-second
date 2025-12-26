@@ -210,6 +210,12 @@ async function generateAIGuide(city, month, duration, apiKey) {
 4. 考虑${season}季的气候特点
 5. 包含抖音/小红书热门打卡点`;
 
+        // ========== 【新增调试日志：检查请求】==========
+        console.log('【豆包调试】准备调用API，密钥（前8位）:', (apiKey || process.env.DOUBAO_KEY || '').substring(0, 8) + '...');
+        console.log('【豆包调试】请求URL:', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions');
+        console.log('【豆包调试】请求的Prompt长度:', prompt.length);
+        // ========== 【调试日志结束】==========
+
     try {
         // 豆包API调用
         const doubaoResponse = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
@@ -234,8 +240,34 @@ async function generateAIGuide(city, month, duration, apiKey) {
                 max_tokens: 4000
             })
         });
+
+        // ========== 【新增调试日志：检查HTTP响应】==========
+        console.log('【豆包调试】HTTP状态码:', doubaoResponse.status, doubaoResponse.statusText);
+        const rawResponseText = await doubaoResponse.text(); // 先以文本形式读取
+        console.log('【豆包调试】原始响应文本（前500字符）:', rawResponseText.substring(0, 500));
+        // ========== 【调试日志结束】==========
         
+        // 注意：因为上面已经用 .text() 读取了响应体，我们需要重新构造一个“响应对象”供后面的 .json() 解析。
+        // 将原来的 const data = await doubaoResponse.json(); 替换为以下两行：
+        let data;
+        try {
+            data = JSON.parse(rawResponseText);
+        } catch (parseError) {
+            console.error('【豆包调试】响应不是有效JSON! 错误信息:', parseError.message);
+            // 如果连JSON都不是，说明API返回了错误页面或明文错误信息
+            throw new Error(`豆包API返回了非JSON数据，状态码: ${doubaoResponse.status}，内容: ${rawResponseText.substring(0, 200)}`);
+        }
         const data = await doubaoResponse.json();
+
+        // ========== 【新增调试日志：检查解析后的数据】==========
+        console.log('【豆包调试】解析后数据 keys:', Object.keys(data));
+        if (data.error) {
+            console.error('【豆包调试】API返回错误对象:', JSON.stringify(data.error, null, 2));
+        }
+        if (data.choices) {
+            console.log('【豆包调试】choices 数组长度:', data.choices.length);
+        }
+        // ========== 【调试日志结束】==========
         
         if (data.choices && data.choices[0] && data.choices[0].message) {
             const content = data.choices[0].message.content;
