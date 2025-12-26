@@ -225,7 +225,7 @@ async function generateAIGuide(city, month, duration, apiKey) {
                 'Authorization': `Bearer ${apiKey || process.env.DOUBAO_KEY}`
             },
             body: JSON.stringify({
-                model: 'Doubao-1.5-pro-32k',
+                model: 'doubao-1-5-pro-32k-250115',
                 messages: [
                     {
                         role: 'system',
@@ -290,10 +290,13 @@ async function generateAIGuide(city, month, duration, apiKey) {
         throw new Error('豆包API响应格式错误');
         
     } catch (error) {
-        console.error('调用豆包API失败:', error);
-        // 返回模拟数据
-        return generateMockGuide(city, month, duration);
-    }
+    console.error('调用豆包API失败:', error);
+    // 直接返回模拟对象，而不是调用未定义的函数
+    return {
+        overview: `正在为${city}生成${duration}天旅行攻略...（AI服务连接中）`,
+        attractions: [{ name: `${city}地标`, description: '精彩详情即将生成。' }],
+        tips: ['AI生成功能正在最终配置，请稍后。']
+    };
 }
 
 // 结构化处理AI响应
