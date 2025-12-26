@@ -298,6 +298,7 @@ async function generateAIGuide(city, month, duration, apiKey) {
         tips: ['AI生成功能正在最终配置，请稍后。']
     };
 }
+}
 
 // 结构化处理AI响应
 function structureAIResponse(content, city, month, duration) {
